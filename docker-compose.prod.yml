@@ -1,0 +1,10 @@
+version: "3"
+
+services:
+    webserver:
+    middleware:
+    mongo:
+        volumes:
+            - "./data/mongodb:/etc/mongo"
+    redis:
+    uploader:

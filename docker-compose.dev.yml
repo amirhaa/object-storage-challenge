@@ -1,0 +1,28 @@
+version: "3"
+
+services:
+    webserver:
+        volumes:
+            - "./webserver/nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf"
+            - './webserver/nginx-default.conf:/etc/nginx/conf.d/default.conf'
+            - './webserver/scripts:/etc/nginx/lua'
+        ports:
+            - "80:8080"
+    middleware:
+        entrypoint: ["flask", "run"]
+        volumes:
+            - "./middleware/app:/app"
+        environment:
+            - "FLASK_RUN_HOST=0.0.0.0"
+            - "FLASK_RUN_PORT=80"
+            - "FLASK_APP=main"
+            - "FLASK_ENV=development"
+            - "DEBUG=True"
+            - PYTHONUNBUFFERED=1
+        ports:
+            - "8000:80"
+    mongo:
+    redis:
+    uploader:
+        volumes:
+            - "./middleware/app:/app"

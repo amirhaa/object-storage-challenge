@@ -1,0 +1,9 @@
+.vscode/
+middleware.env
+mongo.env
+webserver.env
+__pycache__
+uploads/
+venv/
+.idea/
+data/mongodb

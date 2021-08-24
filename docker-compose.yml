@@ -1,0 +1,47 @@
+version: "3"
+services:
+    webserver:
+        build:
+            context: ./webserver
+        networks: 
+            - object-storage
+        ports: 
+            - "80:8080"
+        env_file: ./env/webserver.env
+    middleware:
+        build:
+            context: ./middleware
+        networks: 
+            - object-storage
+        volumes:
+            - './uploads:/app/uploads'
+        env_file: ./env/middleware.env
+    mongo:
+        image: mongo:latest
+        networks: 
+            - object-storage
+        restart: always
+        volumes:
+            - "object-storage:/etc/mongo"
+        env_file: ./env/mongo.env
+    redis:
+        image: redis:latest
+        networks:
+            - object-storage
+        restart: always
+    uploader:
+        build:
+            context: ./middleware
+        command: celery -A main.celery worker --loglevel=DEBUG
+        networks: 
+            - object-storage
+        volumes:
+            - './uploads:/app/uploads'
+        env_file: ./env/middleware.env
+
+
+networks:
+    object-storage:
+volumes:
+    object-storage:            
+        
