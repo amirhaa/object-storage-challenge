@@ -1,13 +1,7 @@
-import os
-import tempfile
-
 import unittest
-import pytest
 
 from flask import Flask
 from flask_mongoengine import MongoEngine
-from mongoengine import connect
-from mongoengine.connection import disconnect
 from models import User, Prefix, UserPrefix
 from views import bucket_api_blueprint, bucket_api_v2_blueprint
 
@@ -25,7 +19,7 @@ user2 = {
 class TestBucketApi(unittest.TestCase):
     api_blueprint = bucket_api_blueprint
     path = '/bucket'
-    
+
     client = None
     db = None
 
@@ -58,7 +52,7 @@ class TestBucketApi(unittest.TestCase):
         UserPrefix.drop_collection()
 
         cls.db.disconnect()
-        
+
     @classmethod
     def init_data(cls):
         cls.u1 = User(**user1).save()
@@ -68,14 +62,14 @@ class TestBucketApi(unittest.TestCase):
         cls.p2 = Prefix(prefix='cloud').save()
         cls.p3 = Prefix(prefix='arvan').save()
         cls.p4 = Prefix(prefix='bucket').save()
-        
+
         cls.up1 = UserPrefix(user_id=cls.u1, prefix_id=cls.p1, is_allowed=True).save()
         cls.up2 = UserPrefix(user_id=cls.u1, prefix_id=cls.p2, is_allowed=False).save()
         cls.up3 = UserPrefix(user_id=cls.u1, prefix_id=cls.p3, is_allowed=True).save()
         cls.up4 = UserPrefix(user_id=cls.u2, prefix_id=cls.p1, is_allowed=False).save()
         cls.up5 = UserPrefix(user_id=cls.u2, prefix_id=cls.p2, is_allowed=False).save()
         cls.up6 = UserPrefix(user_id=cls.u2, prefix_id=cls.p3, is_allowed=False).save()
-        
+
     def test_payload_is_empty(self):
         result = self.client.post(self.path, json={})
 
@@ -89,23 +83,23 @@ class TestBucketApi(unittest.TestCase):
 
     def test_payload_for_required_fields(self):
         result = self.client.post(self.path, json={'bucket': 'bucket'})
-        
+
         self.assertEqual(result.json['username'], ['Missing data for required field.'])
         self.assertEqual(result.status_code, 400)
 
     def test_bucket_that_is_false_allowed_for_user(self):
-       # u1, p2, up2
-       bucket = f'{self.p2.prefix}sth'
-       result = self.client.post(self.path, json={'username': self.u1.username, 'bucket': bucket})
-       
-       self.assertEqual(result.json['error'], f"you are not allowed to use '{bucket}', please try something else")
-       self.assertEqual(result.status_code, 400)
+        # u1, p2, up2
+        bucket = f'{self.p2.prefix}sth'
+        result = self.client.post(self.path, json={'username': self.u1.username, 'bucket': bucket})
+
+        self.assertEqual(result.json['error'], f"you are not allowed to use '{bucket}', please try something else")
+        self.assertEqual(result.status_code, 400)
 
     def test_unavailable_bucket_that_is_already_in_prefix_model(self):
         # u1, p4
         bucket = f'{self.p4.prefix}sht'
         result = self.client.post(self.path, json={'username': self.u1.username, 'bucket': bucket})
-        
+
         self.assertEqual(result.json['error'], f"cannot use '{bucket}', it is already taken, please try something else")
         self.assertEqual(result.status_code, 400)
 

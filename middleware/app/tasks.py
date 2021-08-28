@@ -1,13 +1,10 @@
 import os
-import logging
 import math
 import boto3
 from boto3.s3.transfer import TransferConfig
 from flask import current_app
 
 from main import celery
-
-logging.basicConfig(level=logging.INFO)
 
 
 @celery.task(name='upload_to_bucket')
@@ -27,15 +24,18 @@ def upload_task(file_path, file_name, bucket_name, acl):
 
     # Calculate total size of the uploader file in bytes
     total_bytes = os.path.getsize(file_path)
-    logging.info(f"==================== total size of the file: {total_bytes} bytes =========================")
+    current_app.logger.info(
+        f"==================== total size of the file: {total_bytes} bytes =========================")
 
     # this is the callback that boto3 calls periodically
     # and send the transferred bytes to this callback
     def upload_progress(bytes_transferred):
-        logging.info("===========================================================================================")
-        logging.info(f"{math.trunc(((bytes_transferred * 100) / total_bytes))}% progressed, "
-                     f"transferred {bytes_transferred} bytes of {total_bytes}")
-        logging.info("===========================================================================================")
+        current_app.logger.info(
+            "===========================================================================================")
+        current_app.logger.info(f"{math.trunc(((bytes_transferred * 100) / total_bytes))}% progressed, "
+                                f"transferred {bytes_transferred} bytes of {total_bytes}")
+        current_app.logger.info(
+            "===========================================================================================")
 
     # Set TransferConfig
     MB = 1024 ** 2
@@ -64,4 +64,5 @@ def upload_task(file_path, file_name, bucket_name, acl):
         )
 
     except Exception as exc:
-        logging.error(f"================== could not commit a s3 upload, exc: {exc} ======================")
+        current_app.logger.error(
+            f"================== could not commit a s3 upload, exc: {exc} ======================")

@@ -1,8 +1,5 @@
-import logging
 import re
 
-import boto3
-from botocore.exceptions import ClientError
 from flask import request, jsonify, current_app
 from flask.views import MethodView
 from models import User, Prefix, UserPrefix
@@ -10,8 +7,6 @@ from mongoengine import DoesNotExist
 from validators import PrefixApiValidatorSchema
 
 __all__ = ['BucketPrefixApi', 'BucketPrefixApiV2']
-
-logging.basicConfig(level=logging.INFO)
 
 
 class BucketApiMixin(object):
@@ -24,8 +19,9 @@ class BucketApiMixin(object):
     def already_taken_prefix_response(self, bucket):
         return jsonify({"error": f"cannot use '{bucket}', it is already taken, please try something else"}), 400
 
-    def error_response(self, error, status = 400):
+    def error_response(self, error, status=400):
         return jsonify(error), status
+
 
 class BucketPrefixApi(MethodView, BucketApiMixin):
     """
@@ -46,11 +42,12 @@ class BucketPrefixApi(MethodView, BucketApiMixin):
 
         :return:
         """
-        logging.info("================== bucket api v1 ======================")
+        current_app.logger.info(
+            "================== bucket api v1 ======================")
 
         # without forc=True does not work in production
         body = request.get_json(force=True)
-        
+
         # Validate post request fields
         errors = PrefixApiValidatorSchema().validate(data=body)
         if errors:
@@ -125,7 +122,6 @@ class BucketPrefixApi(MethodView, BucketApiMixin):
         return re.compile(regex_str)  # r'arv|arva|arvan'
 
 
-
 class BucketPrefixApiV2(MethodView, BucketApiMixin):
     """
         BucketPrefixApiV2 is used for checking if bucket
@@ -144,10 +140,11 @@ class BucketPrefixApiV2(MethodView, BucketApiMixin):
         self.prefix_col = Prefix._get_collection()
 
     def post(self):
-        logging.info("================== bucket api v2 ======================")
+        current_app.logger.info(
+            "================== bucket api v2 ======================")
 
         body = request.get_json(force=True)
-        
+
         # Validate post request fields
         errors = PrefixApiValidatorSchema().validate(data=body)
         if errors:
@@ -169,7 +166,6 @@ class BucketPrefixApiV2(MethodView, BucketApiMixin):
             return self.already_taken_prefix_response(bucket)
 
         return self.ok_response()
-        
 
     def get_user_prefixes(self, username):
         """
@@ -181,17 +177,17 @@ class BucketPrefixApiV2(MethodView, BucketApiMixin):
         """
 
         pipeline = [
-            { "$match": {"username": username} },
-            { "$project": { "_id": 1 } },
-            { "$lookup": {
-                    "from": "user_prefix",
-                    "localField": "_id",
-                    "foreignField": "user_id",
-                    "as": "user_prefix"
-                }
+            {"$match": {"username": username}},
+            {"$project": {"_id": 1}},
+            {"$lookup": {
+                "from": "user_prefix",
+                "localField": "_id",
+                "foreignField": "user_id",
+                "as": "user_prefix"
+            }
             },
-            { "$unwind": "$user_prefix" },
-            { "$project": { "user_prefix.prefix_id": 1, "user_prefix.is_allowed": 1 } },
+            {"$unwind": "$user_prefix"},
+            {"$project": {"user_prefix.prefix_id": 1, "user_prefix.is_allowed": 1}},
             {
                 "$lookup": {
                     "from": "prefix",
@@ -200,17 +196,17 @@ class BucketPrefixApiV2(MethodView, BucketApiMixin):
                     "as": "prefix_item"
                 }
             },
-            { "$unwind": "$prefix_item" },
-            { "$project": { "prefix": "$prefix_item.prefix", "is_allowed": "$user_prefix.is_allowed", "_id": 0 } }
+            {"$unwind": "$prefix_item"},
+            {"$project": {"prefix": "$prefix_item.prefix",
+                          "is_allowed": "$user_prefix.is_allowed", "_id": 0}}
         ]
 
         return self.user_col.aggregate(pipeline)
 
-
     def prefix_combinations(self, bucket):
         """
-        create a string contains combination of 
-        names with whitespace between in order
+        create a string contains combination
+        of names with whitespace between in order
         to query on mongo as a text index
 
         create combinations between 3 and self.prefix_max_length.

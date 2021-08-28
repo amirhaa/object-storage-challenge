@@ -2,6 +2,7 @@ import os
 
 IS_DEVELPMENT = os.environ.get("FLASK_ENV", "production") == 'development'
 
+
 class Config(object):
     TESTING = False
     UPLOAD_FOLDER = 'uploads'
@@ -15,11 +16,14 @@ class Config(object):
     ARVAN_SECRET_KEY = os.environ.get('ARVAN_SECRET_KEY')
     ARVAN_ENDPOINT_URL = os.environ.get('ARVAN_ENDPOINT_URL')
 
+
 class ProductionConfig(Config):
     pass
 
+
 class DevelopmentConfig(Config):
     pass
+
 
 class TestConfig(Config):
     TESTING = True
