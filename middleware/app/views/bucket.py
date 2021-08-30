@@ -65,6 +65,7 @@ class BucketPrefixApi(MethodView, BucketApiMixin):
         # Check user prefixes (UserPrefix model)
         user_prefixes = UserPrefix.objects.filter(user_id=user.id)
         for user_prefix_obj in user_prefixes:
+            # prefix name (str)
             u_prefix = user_prefix_obj.prefix_id.prefix
 
             if user_prefix_obj.is_allowed and bucket.startswith(u_prefix):
@@ -101,9 +102,10 @@ class BucketPrefixApi(MethodView, BucketApiMixin):
         """
         length = len(bucket)
         characters = list(bucket)
+        up_to = min(length, self.prefix_max_length)
 
-        for idx in range(length):
-            if 1 < idx < self.prefix_max_length:
+        for idx in range(up_to):
+            if 1 < idx:
                 result = characters[0: idx + 1]
                 yield "".join(result)
 
@@ -115,9 +117,10 @@ class BucketPrefixApi(MethodView, BucketApiMixin):
         :return:
         """
         prefix_gen = self.prefix_combinations(bucket)
-        regex_str = f"{''.join([f'{p}|' for p in prefix_gen])}"
+        regex_str = f"{''.join([f'{p}|' for p in prefix_gen])}" # 'arv|arva|arvan'
         regex_str = regex_str[:-1]
         if not regex_str:
+            # this is the case if prefix_gen returns empty (when len of the bucket is less than 3)
             return False
         return re.compile(regex_str)  # r'arv|arva|arvan'
 
@@ -180,10 +183,10 @@ class BucketPrefixApiV2(MethodView, BucketApiMixin):
             {"$match": {"username": username}},
             {"$project": {"_id": 1}},
             {"$lookup": {
-                "from": "user_prefix",
-                "localField": "_id",
-                "foreignField": "user_id",
-                "as": "user_prefix"
+                "from": "user_prefix", # collection to join
+                "localField": "_id", # field from the input doc
+                "foreignField": "user_id", # field from the doc of the "from"
+                "as": "user_prefix" # output array field
             }
             },
             {"$unwind": "$user_prefix"},
@@ -221,8 +224,10 @@ class BucketPrefixApiV2(MethodView, BucketApiMixin):
         characters = list(bucket)
         results = []
 
+        up_to = min(length, self.prefix_max_length)
+
         for idx in range(length):
-            if 1 < idx < self.prefix_max_length:
+            if 1 < idx:
                 result = characters[0: idx + 1]
                 results.append("".join(result))
 
